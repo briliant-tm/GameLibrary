@@ -1,5 +1,6 @@
 /* ============================================================
    GameVault – Main JavaScript
+   Praktikum 4: fetch ke api/ endpoints (OOP + REST)
    ============================================================ */
 
 // ── SESSION STATE ─────────────────────────────────────────────
@@ -68,7 +69,7 @@ function showAccount() {
 
 // ── HERO STATS ────────────────────────────────────────────────
 function updateHeroStats() {
-    // Just static display for landing, real stats shown after login
+    // Static display on landing; real stats shown after login
 }
 
 // ── AUTH OVERLAY ──────────────────────────────────────────────
@@ -83,7 +84,7 @@ function closeAuthModal() {
 
 function switchAuthTab(tab) {
     document.querySelectorAll('.modal-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
-    document.getElementById('login-form-wrap').style.display  = tab === 'login'    ? '' : 'none';
+    document.getElementById('login-form-wrap').style.display    = tab === 'login'    ? '' : 'none';
     document.getElementById('register-form-wrap').style.display = tab === 'register' ? '' : 'none';
 }
 
@@ -100,7 +101,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     const res = await postData('includes/auth.php', fd);
     if (res.success) {
         currentUser = { nickname: res.nickname };
-        isLoggedIn = true;
+        isLoggedIn  = true;
         closeAuthModal();
         toast(res.message, 'success');
         showLibrary();
@@ -112,7 +113,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 // ── REGISTER ──────────────────────────────────────────────────
 document.getElementById('register-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const fd = new FormData(e.target);
+    const fd    = new FormData(e.target);
     fd.append('action', 'register');
     const pass  = fd.get('password');
     const pass2 = fd.get('password2');
@@ -124,7 +125,8 @@ document.getElementById('register-form').addEventListener('submit', async (e) =>
 
 // ── LOGOUT ────────────────────────────────────────────────────
 async function logout() {
-    const fd = new FormData(); fd.append('action', 'logout');
+    const fd = new FormData();
+    fd.append('action', 'logout');
     await postData('includes/auth.php', fd);
     isLoggedIn = false; currentUser = null;
     toast('Berhasil logout.', 'success');
@@ -132,19 +134,19 @@ async function logout() {
 }
 
 // ── LOAD GAMES ────────────────────────────────────────────────
+// Prak 4: fetch ke api/read.php (GET)
 let activeGenre = '', activePlatform = '', searchQuery = '';
 
 async function loadGames() {
     const params = new URLSearchParams({ action: 'get_games' });
-    if (activeGenre)    params.append('genre', activeGenre);
+    if (activeGenre)    params.append('genre',    activeGenre);
     if (activePlatform) params.append('platform', activePlatform);
-    if (searchQuery)    params.append('search', searchQuery);
+    if (searchQuery)    params.append('search',   searchQuery);
 
-    const res = await fetch('includes/games.php?' + params);
+    const res  = await fetch('api/read.php?' + params);
     const data = await res.json();
     renderGames(data.games || []);
 
-    // Update game count
     const el = document.getElementById('game-count');
     if (el) el.textContent = (data.games || []).length + ' game';
 }
@@ -185,8 +187,9 @@ function renderGames(games) {
 }
 
 // ── LOAD CATEGORIES ───────────────────────────────────────────
+// Prak 4: fetch ke api/read.php?action=get_categories (GET)
 async function loadCategories() {
-    const res  = await fetch('includes/games.php?action=get_categories');
+    const res  = await fetch('api/read.php?action=get_categories');
     const data = await res.json();
     renderChips(data.genres || [], data.platforms || []);
     populateFilters(data.genres || [], data.platforms || []);
@@ -201,7 +204,7 @@ function renderChips(genres, platforms) {
     ];
     wrap.innerHTML = all.map(c => {
         const isActive = (!c.type && !activeGenre && !activePlatform)
-            || (c.type === 'genre' && activeGenre === c.value)
+            || (c.type === 'genre'    && activeGenre    === c.value)
             || (c.type === 'platform' && activePlatform === c.value);
         return `<button class="chip ${isActive?'active':''}" onclick="filterBy('${c.type}','${c.value||''}')">${c.label}</button>`;
     }).join('');
@@ -210,16 +213,16 @@ function renderChips(genres, platforms) {
 function populateFilters(genres, platforms) {
     const gs = document.getElementById('filter-genre');
     const ps = document.getElementById('filter-platform');
-    gs.innerHTML = '<option value="">Semua Genre</option>' + genres.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
+    gs.innerHTML = '<option value="">Semua Genre</option>'    + genres.map(g => `<option value="${esc(g)}">${esc(g)}</option>`).join('');
     ps.innerHTML = '<option value="">Semua Platform</option>' + platforms.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
     gs.value = activeGenre;
     ps.value = activePlatform;
 }
 
 function filterBy(type, value) {
-    if (type === 'genre')    { activeGenre = value; activePlatform = ''; }
+    if      (type === 'genre')    { activeGenre = value; activePlatform = ''; }
     else if (type === 'platform') { activePlatform = value; activeGenre = ''; }
-    else { activeGenre = ''; activePlatform = ''; }
+    else                          { activeGenre = ''; activePlatform = ''; }
     loadGames();
     loadCategories();
 }
@@ -236,13 +239,11 @@ document.getElementById('search-input').addEventListener('input', (e) => {
 
 document.getElementById('filter-genre').addEventListener('change', (e) => {
     activeGenre = e.target.value;
-    loadGames();
-    loadCategories();
+    loadGames(); loadCategories();
 });
 document.getElementById('filter-platform').addEventListener('change', (e) => {
     activePlatform = e.target.value;
-    loadGames();
-    loadCategories();
+    loadGames(); loadCategories();
 });
 
 // ── ADD GAME MODAL ────────────────────────────────────────────
@@ -268,8 +269,7 @@ function openEditGame(id, title, genre, platform, notes, cover) {
     document.getElementById('g-genre').value    = genre;
     document.getElementById('remove-cover-flag').value = '0';
 
-    // Platform
-    const select = document.getElementById('g-platform');
+    const select  = document.getElementById('g-platform');
     const allOpts = Array.from(select.querySelectorAll('option')).map(o => o.value);
     if (allOpts.includes(platform)) {
         select.value = platform;
@@ -282,25 +282,17 @@ function openEditGame(id, title, genre, platform, notes, cover) {
     }
 
     document.getElementById('g-notes').value = notes;
-
-    // Cover
-    if (cover) {
-        showCoverPreview(cover);
-    } else {
-        clearCoverPreview();
-    }
-
+    cover ? showCoverPreview(cover) : clearCoverPreview();
     document.getElementById('game-overlay').classList.add('active');
 }
 
 // ── SUBMIT GAME FORM ──────────────────────────────────────────
+// Prak 4: add  → POST  api/create.php
+//         edit → POST  api/update.php  (multipart tidak bisa PUT di browser)
 document.getElementById('game-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
-
     const id = document.getElementById('game-id').value;
-    fd.append('action', id ? 'edit_game' : 'add_game');
-    if (id) fd.append('id', id);
 
     // Platform custom
     const platform = document.getElementById('g-platform').value;
@@ -310,10 +302,13 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
         fd.set('platform', custom);
     }
 
+    const endpoint = id ? 'api/update.php' : 'api/create.php';
+    if (id) fd.append('id', id);
+
     const btn = e.target.querySelector('[type=submit]');
     btn.disabled = true; btn.textContent = 'Menyimpan...';
 
-    const res = await postData('includes/games.php', fd);
+    const res = await postData(endpoint, fd);
     btn.disabled = false; btn.textContent = 'Simpan';
 
     if (res.success) {
@@ -327,6 +322,7 @@ document.getElementById('game-form').addEventListener('submit', async (e) => {
 });
 
 // ── DELETE GAME ───────────────────────────────────────────────
+// Prak 4: POST api/delete.php
 let pendingDeleteId = null;
 function confirmDeleteGame(id, title) {
     pendingDeleteId = id;
@@ -338,9 +334,8 @@ function closeDeleteModal() { document.getElementById('delete-overlay').classLis
 document.getElementById('confirm-delete-btn').addEventListener('click', async () => {
     if (!pendingDeleteId) return;
     const fd = new FormData();
-    fd.append('action', 'delete_game');
     fd.append('id', pendingDeleteId);
-    const res = await postData('includes/games.php', fd);
+    const res = await postData('api/delete.php', fd);
     if (res.success) {
         toast(res.message, 'success');
         closeDeleteModal();
@@ -356,16 +351,14 @@ document.getElementById('confirm-delete-btn').addEventListener('click', async ()
 document.getElementById('cover-input').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
-        const url = URL.createObjectURL(file);
-        showCoverPreview(url);
+        showCoverPreview(URL.createObjectURL(file));
         document.getElementById('remove-cover-flag').value = '0';
     }
 });
 
 function showCoverPreview(url) {
     document.getElementById('cover-upload-area').style.display = 'none';
-    const wrap = document.getElementById('cover-preview-wrap');
-    wrap.style.display = '';
+    document.getElementById('cover-preview-wrap').style.display = '';
     document.getElementById('cover-preview-img').src = url;
 }
 
@@ -385,13 +378,12 @@ function togglePlatformCustom() {
     const sel    = document.getElementById('g-platform');
     const custom = document.getElementById('g-platform-custom');
     custom.style.display = (sel.value === 'Lainnya (Ketik Manual)') ? '' : 'none';
-    custom.required = (sel.value === 'Lainnya (Ketik Manual)');
+    custom.required      = (sel.value === 'Lainnya (Ketik Manual)');
 }
 
 // ── BUILD PLATFORM DROPDOWNS ──────────────────────────────────
 function buildPlatformDropdowns() {
-    const selects = document.querySelectorAll('.platform-select');
-    selects.forEach(sel => {
+    document.querySelectorAll('.platform-select').forEach(sel => {
         sel.innerHTML = '<option value="">Pilih Platform</option>';
         PLATFORMS.forEach(group => {
             const og = document.createElement('optgroup');
@@ -415,14 +407,15 @@ function switchAccountPanel(panel) {
 }
 
 async function loadProfile() {
-    const res  = await fetch('includes/account.php?action=get_profile', { method: 'POST', body: new URLSearchParams({ action: 'get_profile' }) });
-    const data = await res.json();
-    if (!data.success) return;
-    const u = data.user;
-    document.getElementById('profile-avatar').textContent  = (u.nickname || u.username || '?')[0].toUpperCase();
-    document.getElementById('profile-username').textContent = u.username;
-    document.getElementById('profile-email-display').textContent   = u.email;
-    document.getElementById('profile-joined').textContent  = 'Bergabung: ' + new Date(u.created_at).toLocaleDateString('id-ID', { year:'numeric', month:'long', day:'numeric' });
+    const fd = new FormData();
+    fd.append('action', 'get_profile');
+    const res  = await postData('includes/account.php', fd);
+    if (!res.success) return;
+    const u = res.user;
+    document.getElementById('profile-avatar').textContent         = (u.nickname || u.username || '?')[0].toUpperCase();
+    document.getElementById('profile-username').textContent       = u.username;
+    document.getElementById('profile-email-display').textContent  = u.email;
+    document.getElementById('profile-joined').textContent         = 'Bergabung: ' + new Date(u.created_at).toLocaleDateString('id-ID', { year:'numeric', month:'long', day:'numeric' });
     document.getElementById('edit-nickname').value = u.nickname || '';
     document.getElementById('edit-email').value    = u.email;
 }
@@ -456,7 +449,11 @@ document.getElementById('delete-account-form').addEventListener('submit', async 
     const res = await postData('includes/account.php', fd);
     showAlert('delete-account-alert', res.message, res.success ? 'success' : 'error');
     if (res.success) {
-        setTimeout(() => { isLoggedIn = false; currentUser = null; showLanding(); toast('Akun berhasil dihapus.','success'); }, 1500);
+        setTimeout(() => {
+            isLoggedIn = false; currentUser = null;
+            showLanding();
+            toast('Akun berhasil dihapus.', 'success');
+        }, 1500);
     }
 });
 
@@ -470,7 +467,7 @@ function showAlert(id, msg, type) {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = msg;
-    el.className = `alert alert-${type} show`;
+    el.className   = `alert alert-${type} show`;
     setTimeout(() => el.classList.remove('show'), 4000);
 }
 
@@ -489,9 +486,5 @@ function esc(str) {
 
 // ── CLOSE MODALS ON BACKDROP CLICK ───────────────────────────
 document.querySelectorAll('.overlay').forEach(ov => {
-    ov.addEventListener('click', (e) => {
-        if (e.target === ov) {
-            ov.classList.remove('active');
-        }
-    });
+    ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('active'); });
 });
